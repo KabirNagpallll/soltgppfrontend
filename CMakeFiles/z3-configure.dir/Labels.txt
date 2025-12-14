@@ -1,0 +1,10 @@
+# Target labels
+ z3
+# Source files and their labels
+/home/kabir-nagpal/Desktop/soltgp/soltgfrontend/CMakeFiles/z3-configure
+/home/kabir-nagpal/Desktop/soltgp/soltgfrontend/CMakeFiles/z3-configure.rule
+/home/kabir-nagpal/Desktop/soltgp/soltgfrontend/z3-prefix/src/z3-stamp/z3-configure.rule
+/home/kabir-nagpal/Desktop/soltgp/soltgfrontend/z3-prefix/src/z3-stamp/z3-patch.rule
+/home/kabir-nagpal/Desktop/soltgp/soltgfrontend/z3-prefix/src/z3-stamp/z3-update.rule
+/home/kabir-nagpal/Desktop/soltgp/soltgfrontend/z3-prefix/src/z3-stamp/z3-download.rule
+/home/kabir-nagpal/Desktop/soltgp/soltgfrontend/z3-prefix/src/z3-stamp/z3-mkdir.rule

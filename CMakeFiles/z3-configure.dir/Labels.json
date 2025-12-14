@@ -1,0 +1,34 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/home/kabir-nagpal/Desktop/soltgp/soltgfrontend/CMakeFiles/z3-configure"
+		},
+		{
+			"file" : "/home/kabir-nagpal/Desktop/soltgp/soltgfrontend/CMakeFiles/z3-configure.rule"
+		},
+		{
+			"file" : "/home/kabir-nagpal/Desktop/soltgp/soltgfrontend/z3-prefix/src/z3-stamp/z3-configure.rule"
+		},
+		{
+			"file" : "/home/kabir-nagpal/Desktop/soltgp/soltgfrontend/z3-prefix/src/z3-stamp/z3-patch.rule"
+		},
+		{
+			"file" : "/home/kabir-nagpal/Desktop/soltgp/soltgfrontend/z3-prefix/src/z3-stamp/z3-update.rule"
+		},
+		{
+			"file" : "/home/kabir-nagpal/Desktop/soltgp/soltgfrontend/z3-prefix/src/z3-stamp/z3-download.rule"
+		},
+		{
+			"file" : "/home/kabir-nagpal/Desktop/soltgp/soltgfrontend/z3-prefix/src/z3-stamp/z3-mkdir.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"z3"
+		],
+		"name" : "z3-configure"
+	}
+}
