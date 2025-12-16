@@ -200,7 +200,7 @@ class ModernReportBuilder:
                 'Time (s)': d['time_seconds'],
                 'Z3 Status': d['z3_status'],
                 'LLM Inputs': input_summary,
-                'LLM Vulnerabilities': vuln_summary,
+                'LLM Output': vuln_summary,
                 'Generated Test File': os.path.basename(d['generated_test_path']) if d['generated_test_path'] else "Safe - No Tests",
                 'SMT2 Files': smt_summary,
                 'Source Path': d['sol_path']
@@ -255,7 +255,7 @@ class ModernReportBuilder:
                         <th>Metrics</th>
                         <th>SMT2 Info</th>
                         <th>LLM Inputs</th>
-                        <th>LLM Vulnerabilities</th>
+                        <th>LLM Output</th>
                         <th>Generated Test Suite</th>
                         <th>Logs</th>
                     </tr>
@@ -330,7 +330,7 @@ class ModernReportBuilder:
                                     🧪 View .t.sol
                                 </button>
                             {% else %}
-                                <span class="badge bg-success">Safe contract<br>no tests generated</span>
+                                <span class="badge bg-success">No tests generated<br>Check the LLM Output to see final verdict.</span>
                             {% endif %}
                         </td>
 
@@ -478,9 +478,212 @@ class ModernReportBuilder:
         </html>
         """
         
-        with open(os.path.join(self.output_dir, "Modern_Report.html"), "w", encoding="utf-8") as f:
+        with open(os.path.join(self.output_dir, "SolTGPP_Report.html"), "w", encoding="utf-8") as f:
             f.write(Template(template_str).render(data=self.data, timestamp=datetime.now()))
-        print(f"HTML saved: {os.path.join(self.output_dir, 'Modern_Report.html')}")
+        print(f"HTML saved: {os.path.join(self.output_dir, 'SolTGPP_Report.html')}")
+    
+    def generate_html_2(self):
+        """Simplified HTML report WITHOUT LLM Inputs/Vulns."""
+        if not self.data: return
+        print(f"Generating HTML (Simplified) in {self.output_dir}...")
+        
+        template_str = """
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <title>Analysis Report</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+            <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+            <style>
+                body { background: #f8f9fa; font-family: 'Segoe UI', sans-serif; }
+                .card { box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: none; margin-bottom: 20px; }
+                pre { background: #272822; color: #f8f8f2; padding: 15px; border-radius: 6px; max-height: 600px; overflow: auto; }
+                .modal-xl { max-width: 90%; }
+            </style>
+        </head>
+        <body class="p-4">
+        
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1>🛡️ SolTG+ Report</h1>
+                <p class="text-muted mb-0">Analysis & Verification Results</p>
+            </div>
+            <span class="text-muted">{{ timestamp }}</span>
+        </div>
+
+        <div class="card p-4">
+            <table id="mainTable" class="table table-striped align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th style="width: 20%">Contract</th>
+                        <th>Metrics</th>
+                        <th>SMT2 Info</th>
+                        <th>Generated Test Suite</th>
+                        <th>Logs</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in data %}
+                    <tr>
+                        <td>
+                            <strong>{{ row.contract_name }}</strong><br>
+                            {% if row.sol_content %}
+                                <button class="btn btn-primary btn-sm mt-1" data-bs-toggle="modal" data-bs-target="#solModal{{ loop.index }}">
+                                    📄 View .sol
+                                </button>
+                            {% else %}
+                                <span class="badge bg-secondary">No Source</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <div>⏱️ <strong>{{ row.time_seconds }}s</strong></div>
+                            <div class="mt-1">
+                                <span class="badge {% if row.z3_status == 'sat' %}bg-danger{% elif row.z3_status == 'unsat' %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {{ row.z3_status }}
+                                </span>
+                            </div>
+                        </td>
+
+                        <td>
+                            {% if row.smt2_info %}
+                                {% for s in row.smt2_info %}
+                                    <div class="mb-1">
+                                        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#smtModal{{ loop.index }}_{{ loop.index0 }}">
+                                            {{ s.name }}
+                                        </button>
+                                        <span class="text-muted" style="font-size:0.8em">({{ s.lines }}L)</span>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {% if row.generated_test_content %}
+                                <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#testFileModal{{ loop.index }}">
+                                    🧪 View .t.sol
+                                </button>
+                            {% else %}
+                                <span class="badge bg-success">No tests generated</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <div class="d-grid gap-2">
+                                {% if row.log_content %}
+                                    <button class="btn btn-sm btn-light border" data-bs-toggle="modal" data-bs-target="#logModal{{ loop.index }}">
+                                        📄 log.txt
+                                    </button>
+                                {% endif %}
+                                
+                                {% if row.test_log_content %}
+                                    <button class="btn btn-sm btn-dark" data-bs-toggle="modal" data-bs-target="#foundryLogModal{{ loop.index }}">
+                                        🔨 Foundry output
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% for row in data %}
+        
+            {% if row.sol_content %}
+            <div class="modal fade" id="solModal{{ loop.index }}" tabindex="-1">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Source: {{ row.contract_name }}</h5>
+                            <button class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body"><pre>{{ row.sol_content }}</pre></div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% for s in row.smt2_info %}
+            <div class="modal fade" id="smtModal{{ loop.index }}_{{ loop.index0 }}" tabindex="-1">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">{{ s.name }}</h5>
+                            <button class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body"><pre>{{ s.content }}</pre></div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            {% if row.generated_test_content %}
+            <div class="modal fade" id="testFileModal{{ loop.index }}" tabindex="-1">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header bg-success text-white">
+                            <h5 class="modal-title">Generated Test: {{ row.contract_name }}.t.sol</h5>
+                            <button class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body"><pre>{{ row.generated_test_content }}</pre></div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if row.log_content %}
+            <div class="modal fade" id="logModal{{ loop.index }}" tabindex="-1">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Analysis Log: {{ row.contract_name }}</h5>
+                            <button class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body"><pre>{{ row.log_content }}</pre></div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if row.test_log_content %}
+            <div class="modal fade" id="foundryLogModal{{ loop.index }}" tabindex="-1">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header bg-dark text-white">
+                            <h5 class="modal-title">Foundry Output: {{ row.contract_name }}</h5>
+                            <button class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body"><pre>{{ row.test_log_content }}</pre></div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+        {% endfor %}
+
+        <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+        <script>
+            $(document).ready(function(){
+                $('#mainTable').DataTable({
+                    "order": [[ 1, "desc" ]] 
+                });
+            });
+        </script>
+        </body>
+        </html>
+        """
+        
+        with open(os.path.join(self.output_dir, "SolTGP_Report.html"), "w", encoding="utf-8") as f:
+            f.write(Template(template_str).render(data=self.data, timestamp=datetime.now()))
+        print(f"HTML (Simplified) saved: {os.path.join(self.output_dir, 'SolTGP_Report.html')}")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

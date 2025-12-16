@@ -1001,7 +1001,7 @@ def find_contract_name(signature):
 
 
 
-def main(filename, timeout, api_key):
+def main(filename, timeout, api_key, mod):
     start_time = time.time()
     init()
     global ADT_DIR, SOLCMC, CORE, ADT_DIR, TIMEOUT, SOLVER_TYPE, SANDBOX_DIR, TG_PATH, TG_TIMEOUT, FORGE_PATH
@@ -1037,7 +1037,9 @@ def main(filename, timeout, api_key):
         f.write(api_key)
     print(f"API key saved to {api_file_path}")
     print("File: ", file)
-    
+    mode_file_path = os.path.join(SANDBOX_DIR, "mode.txt")
+    with open(mode_file_path, "w") as f:
+        f.write(mod)
     # test_1()
 
     print("Pre sig")

@@ -4,6 +4,7 @@ from datetime import datetime
 import os
 import shutil
 import subprocess
+import glob
 from . import SolidityTestGen
 from .ReportBuilder import ModernReportBuilder
 
@@ -12,15 +13,17 @@ from .ReportBuilder import ModernReportBuilder
 
 
 def init():
-    global SOURCE_PATH, SANDBOX_DIR, OUTPUTDIR, TIMEOUT, APIKEY
+    global SOURCE_PATH, SANDBOX_DIR, OUTPUTDIR, TIMEOUT, APIKEY, MOD
     core = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     tmp = os.getcwd()
     SANDBOX_DIR = core + "/sandbox"
     OUTPUTDIR = tmp + "/test"
     TIMEOUT = 120
     APIKEY = ""
+    MOD = ""
 
 def clean_dir(dir):
+    print(dir)
     for root, dirs, files in os.walk(dir):
         for f in files:
             os.unlink(os.path.join(root, f))
@@ -143,7 +146,7 @@ def main_pipeline(files):
         print("base_dirname: {}".format(base_dirname))
         print("dir_dirname: {}".format(dir_dirname))
         # Step 1: run SolidityTestGen.py -i f
-        SolidityTestGen.main(f, TIMEOUT, APIKEY)
+        SolidityTestGen.main(f, TIMEOUT, APIKEY, MOD)
         # Step 2: mkdir: OUTPUTDIR + "/" + base_dirname
         new_sub_dir = OUTPUTDIR + "/" + base_dirname
         if not os.path.exists(new_sub_dir):
@@ -159,7 +162,7 @@ def main_pipeline(files):
 def main():
     start_time = time.time()
     init()
-    global SOURCE_PATH, SANDBOX_DIR, OUTPUTDIR, RERUN, TIMEOUT, APIKEY 
+    global SOURCE_PATH, SANDBOX_DIR, OUTPUTDIR, RERUN, TIMEOUT, APIKEY, MOD 
     parser = argparse.ArgumentParser(description='python script to run Sol Test Generation for all files in dir')
     insourse = ['-i', '--input_source']
     kwsourse = {'type': str, 'help': 'Input .sol-file. or directory with .sol-files'}
@@ -171,7 +174,10 @@ def main():
     kwtimeout = {'type': int, 'help': 'integer time in seconds. Default: 120'}
 
     api_arg = ['--apiKey']
-    kwapi = {'type': str, 'help': 'API key required to access the service'}
+    kwapi = {'type': str, 'help': 'API key required to access the service, only for mode 1'}
+
+    mode_arg = ['--mode']
+    kwmode = {'type': str, 'help': 'mode 0 ==> soltgp, mode 1 ==> soltgpp'}
 
     parser.add_argument(*insourse, **kwsourse)
     # parser.add_argument(*outdir, **kwoutdir)
@@ -179,6 +185,7 @@ def main():
     kwcov = {'type': bool, 'help': 'true - rerun / false - continue. Default: true.'}
     parser.add_argument('--rerun', **kwcov)
     parser.add_argument(*api_arg, **kwapi)
+    parser.add_argument(*mode_arg, **kwmode)
     
     args = parser.parse_args()
 
@@ -225,12 +232,18 @@ def main():
     # if args.output_dir is not None:
     #     print('sandoutput dir set to {}'.format(args.output_dir))
     #     OUTPUTDIR = args.output_dir
-
+     
+    if args.mode:
+        MOD = args.mode
+    else:
+        MOD = "0"
+    
     if args.apiKey:
         # Ensure sandbox directory exists
         APIKEY = args.apiKey
-    else:
+    elif args.mode == "1":
         raise ValueError("Missing required argument: --apiKey, ANTHROPIC API KEY NEEDED to run  SOLTG PLUS PLUS")
+        exit()
 
     for f in files:
         print(f)
@@ -238,11 +251,30 @@ def main():
 
     yo = ModernReportBuilder(OUTPUTDIR, SANDBOX_DIR)
     yo.scan()
-    yo.generate_html()
+    if MOD == "0":
+        yo.generate_html_2()
+    else:
+        yo.generate_html()
     yo.generate_excel()
     # html_report.build_excel_report(OUTPUTDIR)
     # clean_dir(SANDBOX_DIR)
-    # os.rmdir(SANDBOX_DIR)
+    shutil.rmtree(SANDBOX_DIR)
+    # Step 1: go into myproject
+    myproject_dir = os.path.join(OUTPUTDIR, "myproject")
+
+    # Step 2: get the only directory inside myproject
+    subdirs = [
+        os.path.join(myproject_dir, d)
+        for d in os.listdir(myproject_dir)
+        if os.path.isdir(os.path.join(myproject_dir, d))
+    ]
+    assert len(subdirs) == 1, "Expected exactly one directory inside myproject"
+
+    target_dir = subdirs[0]
+
+    # Step 3: delete llm_input_*.txt files
+    for file in glob.glob(os.path.join(target_dir, "llm_input_*.txt")):
+        os.remove(file)
     # html_report.buildReport_Excel_klee(SANDBOX_DIR)
     tt = time.time() - start_time
     to_print_var = 'total time: {} seconds'.format(tt)
